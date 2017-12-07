@@ -82,28 +82,40 @@ class raspberryjam:
                 data2 = struct.unpack(fmt, data)
                 # Split data string into array (of short ints)
                 data2 = numpy.array(data2, dtype = 'h')
-                # Perform Fourier Transform
+                # Perform Fourier Transform; returns complex numbers
                 fourier = numpy.fft.fft(data2)
                 
-                # Take abs value of positive frequencies of fourier transform and convert to KHz
+                # Get real values of positive frequencies of fourier transform and convert to KHz
                 # See https://docs.scipy.org/doc/numpy-1.13.0/reference/routines.fft.html#implementation-details 
                 ffty = numpy.abs(fourier[0:len(fourier)/2]) / 1000
                 
-                # Splice the positive frequencies into two equally sizes arrays
-                ffty1 = ffty[:len(ffty) / 2]
-                ffty2 = ffty[len(ffty) / 2::] + 2
+                # ffty now holds the frequencies of the signal
+                # Explanation: http://pythonforengineers.com/audio-and-digital-signal-processingdsp-in-python/
+                # Reference: https://github.com/scottlawsonbc/audio-reactive-led-strip/blob/master/python/dsp.py
                 
+                # Convert frequencies to dB
+                ffty = 20*numpy.log10(ffty)
+                # Convert into list 
+                fourier = list(ffty)
+                
+                # http://calebmadrigal.com/fourier-transform-notes/
+                
+                ########################################
+                # Splice the positive frequencies into two equally sizes arrays
+                # ffty1 = ffty[:len(ffty) / 2]
+                # ffty2 = ffty[len(ffty) / 2::] + 2
                 # Reverse the second half of the sequence
-                ffty2 = ffty2[::-1]
+                #ffty2 = ffty2[::-1]
                 # Add them together
-                ffty = ffty1 + ffty2
+                #ffty = ffty1 + ffty2
                 
                 # Take natural log
-                ffty = numpy.log(ffty) - 2
-                fourier = list(ffty)[5:-4]
-                fourier = fourier[:len(fourier) / 2]
+                #ffty = numpy.log(ffty) - 2
+                #fourier = list(ffty)[5:-4]
+                #fourier = fourier[:len(fourier) / 2]
+                ########################################
                 
-                # 
+                # Determine level of intensity (0 - 255)
                 size = len(fourier)
                 levels = [sum(fourier[i:(i+size / 10)]) for i in xrange(0, size, size / 10)][:10]
                 for i in range(0, len(levels)):
