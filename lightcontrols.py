@@ -75,19 +75,35 @@ class raspberryjam:
                 
                 # The following is the routine we follow to gather useful semi-normalized FFT values. While the general gist is obvious from the output of these function calls, the specifics
                 # regarding each step is still a little confusing to us and was a subject to some experimentation. We altered the formula from 6 buckets to 10
-                #
+                
+                # Set format to C unsigned short
                 fmt = "%dH"%(len(data) / 2)
+                # Unpack the binary data into given format
                 data2 = struct.unpack(fmt, data)
+                # Split data string into array (of short ints)
                 data2 = numpy.array(data2, dtype = 'h')
+                # Perform Fourier Transform
                 fourier = numpy.fft.fft(data2)
-                ffty = numpy.abs(fourier[0:len(fourier) / 2]) / 1000
+                
+                # Take abs value of positive frequencies of fourier transform and convert to KHz
+                # See https://docs.scipy.org/doc/numpy-1.13.0/reference/routines.fft.html#implementation-details 
+                ffty = numpy.abs(fourier[0:len(fourier)/2]) / 1000
+                
+                # Splice the positive frequencies into two equally sizes arrays
                 ffty1 = ffty[:len(ffty) / 2]
                 ffty2 = ffty[len(ffty) / 2::] + 2
+                
+                # Reverse the second half of the sequence
                 ffty2 = ffty2[::-1]
+                # Add them together
                 ffty = ffty1 + ffty2
+                
+                # Take natural log
                 ffty = numpy.log(ffty) - 2
                 fourier = list(ffty)[5:-4]
                 fourier = fourier[:len(fourier) / 2]
+                
+                # 
                 size = len(fourier)
                 levels = [sum(fourier[i:(i+size / 10)]) for i in xrange(0, size, size / 10)][:10]
                 for i in range(0, len(levels)):
