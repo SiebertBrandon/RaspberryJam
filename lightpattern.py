@@ -5,12 +5,12 @@ class LightPattern:
 	# NUM_LED describes the number of LEDs we wish to control
     NUM_LED = 150
 	# NUM_GROUPS describes number of buckets we use for our particular lighting scheme.
-    NUM_GROUPS = 10
+    NUM_GROUPS = 150
 	# These Thresholds describe arbitrary points to change the color of the lights based on the input normalized FFT values
-    THRESHOLD_GREEN = 80
-    THRESHOLD_BLUE = 100
+    THRESHOLD_GREEN = 140
+    THRESHOLD_BLUE = 180
 	# THRESHOLD_PURPOSE was introduced at one point, but didn't add enough visual difference to keep for our demonstration
-    THRESHOLD_PURPLE = 140
+    THRESHOLD_PURPLE = 200
 	
     # mode describes the current lighting scheme for the strip, whereas we have only prepared one
     mode = None
@@ -47,12 +47,12 @@ class LightPattern:
 				# Test for the level of the frequency amplitude for the current group against the constant thresholds
                 if frequencyArray[group] <= self.THRESHOLD_GREEN:
 					# Amplitude is too low, so set red. The brightness of the red LED is dependant on the overall system audio intensity (for all frequencies)
-                    self.lightArray[(group * self.group_size) + index] = [0, intensity, 0] # Red LED
+                    self.lightArray[(group * self.group_size) + index] = [int(frequencyArray[group] * (float(intensity/255))), frequencyArray[group], 0] # Red LED
                 elif frequencyArray[group] <= self.THRESHOLD_BLUE:
 					# Amplitude is somewhere in the middle, so set green with the brightness dependant on system audio intensity
-                    self.lightArray[(group * self.group_size) + index] = [intensity, 0, 0] # Green LED
+                    self.lightArray[(group * self.group_size) + index] = [frequencyArray[group], int(frequencyArray[group] * (float(intensity)/255)), 0] # Green LED
                 else:
 					# Amplitude is high, so set Blue and have brightness depend on system audio intensity
-                    self.lightArray[(group * self.group_size) + index] = [0, 0, intensity] # Blue LED
+                    self.lightArray[(group * self.group_size) + index] = [frequencyArray[group], 0, int(frequencyArray[group] + (float(intensity)/255))] # Blue LED
 		# Return the completed LED color/brightness snapshot for this frame
         return self.lightArray
