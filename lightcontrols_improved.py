@@ -3,6 +3,7 @@ import pyaudio
 import audioop
 import sys
 import numpy
+import wave
 import os
 import struct
 import math
@@ -49,6 +50,7 @@ class raspberryjam:
     # Initialize our control script, including LED strip and audio stream
     def initialize(self):
         # Create an instance of a virtual light strip with the constant parameters from the top of this program
+        audio_file = wave.open("/home/pi/christmas.wav", 'rb')
         self.strip = Adafruit_NeoPixel(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT)
         # begin() must be called on the LED strip for it to start accepting any LED inputs
         self.strip.begin()
@@ -56,16 +58,17 @@ class raspberryjam:
         self.stream = self.p.open(format = pyaudio.paInt16,
                         channels = 1,
                         rate = 44100,
-                        input = True,
+                        output = True,
                         frames_per_buffer = self.CHUNK_SIZE,
                         input_device_index = self.device
                         )
         print "Beginning audio read and LED write, use Ctrl+C to stop"
         # Begin core LED control and audio reading loop. May throw error, so we need to clean up afterwards.
         try:
+            data = audiofile.readframe(self.CHUNK_SIZE)
             while True:
                 # Read the current chunk off of the audio stream
-                data = self.stream.read(self.CHUNK_SIZE)
+                
                 # Find the RMS value of the audio stream, indicative of the overall 'intensity' value of the current chunk. This is later passed to the pattern object
                 rms = audioop.rms(data, 2)
                 # Normalize the RMS value to between 0 and 255. Used to directly control the LED brightness.
@@ -134,10 +137,13 @@ class raspberryjam:
                 # Store the values for the song calculated on this frame, to be displayed at a later frame
                 self.buffFFT.append(levels)
                 self.buffVOL.append(normalized)
+                stream.write(data)
+                data = audiofile.readframe(self.CHUNK_SIZE)
         # When we want to stop the program, facilitate using Ctrl+C
         except KeyboardInterrupt:
             pass
         finally:
+            audio_file.close()
             # Clean up the audio and light output streams to make sure no resources leak
             print "\nStopping"
             self.stream.close()
