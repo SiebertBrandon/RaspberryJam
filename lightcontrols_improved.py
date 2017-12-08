@@ -17,7 +17,7 @@ class raspberryjam:
     LED_FREQ_HZ = 800000    # LED signal frequency in hertz (usually 800khz)
     LED_DMA     = 5         # DMA channel to use for generating signal (try 5)
     LED_INVERT  = False     # True to invert the signal (when using NPN transistor level shift)
-    CHUNK_SIZE  = 4096      # Audio Data Chunk Size. Change if too fast/slow, never less than 1024
+    CHUNK_SIZE  = 1024      # Audio Data Chunk Size. Change if too fast/slow, never less than 1024
     BUFFER_SIZE = 10        # Size of the light delay buffer
     strip = None            # Reference to the led strip
     stream = None           # Reference to input audio stream
@@ -49,23 +49,26 @@ class raspberryjam:
     
     # Initialize our control script, including LED strip and audio stream
     def initialize(self):
+        self.p = pyaudio.PyAudio()
+        self.patternDefault = lp(1)
         # Create an instance of a virtual light strip with the constant parameters from the top of this program
         audio_file = wave.open("/home/pi/christmas.wav", 'rb')
         self.strip = Adafruit_NeoPixel(self.LED_COUNT, self.LED_PIN, self.LED_FREQ_HZ, self.LED_DMA, self.LED_INVERT)
         # begin() must be called on the LED strip for it to start accepting any LED inputs
         self.strip.begin()
         # Initialize auto stream pulling, specifying rate and chunk size. We didn't play around too much with the default values for the sake of not breaking things. Chunk size was doubled.
+        print "Initializing Stream ------------\n"
         self.stream = self.p.open(format = pyaudio.paInt16,
                         channels = 1,
                         rate = 44100,
                         output = True,
-                        frames_per_buffer = self.CHUNK_SIZE,
-                        input_device_index = self.device
+                        frames_per_buffer = self.CHUNK_SIZE
                         )
+        print "\n--------------------------------"
         print "Beginning audio read and LED write, use Ctrl+C to stop"
         # Begin core LED control and audio reading loop. May throw error, so we need to clean up afterwards.
         try:
-            data = audiofile.readframe(self.CHUNK_SIZE)
+            data = audio_file.readframes(self.CHUNK_SIZE)
             while True:
                 # Read the current chunk off of the audio stream
                 
@@ -97,25 +100,25 @@ class raspberryjam:
                 # Reference: https://github.com/scottlawsonbc/audio-reactive-led-strip/blob/master/python/dsp.py
                 
                 # Convert frequencies to dB
-                ffty = 20*numpy.log10(ffty)
-                # Convert into list 
-                fourier = list(ffty)
+                #ffty = 20*numpy.log10(ffty)
+                # Convert into list
+                #fourier = list(ffty)
                 
                 # http://calebmadrigal.com/fourier-transform-notes/
                 
                 ########################################
                 # Splice the positive frequencies into two equally sizes arrays
-                # ffty1 = ffty[:len(ffty) / 2]
-                # ffty2 = ffty[len(ffty) / 2::] + 2
+                ffty1 = ffty[:len(ffty) / 2]
+                ffty2 = ffty[len(ffty) / 2::] + 2
                 # Reverse the second half of the sequence
-                #ffty2 = ffty2[::-1]
+                ffty2 = ffty2[::-1]
                 # Add them together
-                #ffty = ffty1 + ffty2
+                ffty = ffty1 + ffty2
                 
                 # Take natural log
-                #ffty = numpy.log(ffty) - 2
-                #fourier = list(ffty)[5:-4]
-                #fourier = fourier[:len(fourier) / 2]
+                ffty = numpy.log(ffty) - 2
+                fourier = list(ffty)[5:-4]
+                fourier = fourier[:len(fourier) / 2]
                 ########################################
                 
                 # Determine level of intensity (0 - 255)
@@ -131,14 +134,14 @@ class raspberryjam:
                 outLightArray = self.patternDefault.applyConversion(self.buffFFT.pop(-1), self.buffVOL.pop(-1))
                 # Using the obtained array object, set each LED on the light to it's corresponding values
                 for i in range(self.LED_COUNT):
-                    self.change_strip(i, outLightArray[i][0], outLightArray[i][1], outLightArray[i][2])
+                    self.strip.setPixelColor(i, Color(outLightArray[i][0], outLightArray[i][1], outLightArray[i][2]))
                 # Refresh the light strip to change the color of each LED at once
                 self.strip.show()
                 # Store the values for the song calculated on this frame, to be displayed at a later frame
                 self.buffFFT.append(levels)
                 self.buffVOL.append(normalized)
-                stream.write(data)
-                data = audiofile.readframe(self.CHUNK_SIZE)
+                #self.stream.write(data)
+                data = audio_file.readframes(self.CHUNK_SIZE)
         # When we want to stop the program, facilitate using Ctrl+C
         except KeyboardInterrupt:
             pass
@@ -156,6 +159,6 @@ if __name__ == '__main__':
     # Create an instance of the object represented by our control strip
     rj = raspberryjam()
     # Initialize the script and list current audio devices to control the lights from
-    rj.list_devices()
+    # rj.list_devices()
     # Begin loop that reads from the audio stream and controls the lights
     rj.initialize()
