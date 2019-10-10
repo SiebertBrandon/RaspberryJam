@@ -15,7 +15,7 @@ https://tutorials-raspberrypi.com/connect-control-raspberry-pi-ws2812-rgb-led-st
 * Install Bluez
 * Follow this Gist to get turn your raspberry pi into a Bluetooth audio sink:
 https://gist.github.com/joergschiller/1673341
-* Run lightpatternv2.py
+* Run lightpatternv2.py as an executable
 
 ## Update History
 
